@@ -18,8 +18,8 @@ class PlayerData
 		{
 			for (let j = 1;j < 3;j++)
 			{
-				deck.push({element: i,power : i});
-				deck.push({element: i,power : i});
+				deck.push({element: i,power : j});
+				deck.push({element: i,power : j});
 			}
 		}
 		this.deck = shuffle(deck);
@@ -69,7 +69,7 @@ class GameMaster
 		this.player2 = new PlayerData();
 		this.damage = 0;
 
-		[this.p1result,this.p2result] = this.ResultData();
+		this.MakeResultData();
 	}
 
 	SetP1Select(index){this.player1.select = index;}
@@ -103,7 +103,7 @@ class GameMaster
 		default:
 			break;
 		}
-		MakeResultData();
+		this.MakeResultData();
 		this.player1.select = this.player2.select = -1;
 	
 		return [this.p1result,this.p2result];
@@ -164,7 +164,7 @@ class GameMaster
             return;
         }
         this.player1.used.push(battle1);
-        this.player1.used.push(battle2);
+        this.player2.used.push(battle2);
 
 		this.player1.draw = this.player1.DrawCard();
 		this.player2.draw = this.player2.DrawCard();
@@ -184,10 +184,10 @@ class GameMaster
 
     static Judge(a_battle, b_battle, a_support = null, b_support = null)
     {
-        let a_supportpower = (a_support != null ? Chemistry(a_battle.element, a_support.element) : 0);
-        let a_power = a_battle.power + a_supportpower + Chemistry(a_battle.element, b_battle.element);
-        let b_supportpower = (b_support != null ? Chemistry(b_battle.element, b_support.element) : 0);
-        let b_power = b_battle.power + b_supportpower + Chemistry(b_battle.element, a_battle.element);
+        let a_supportpower = (a_support != null ? GameMaster.Chemistry(a_battle.element, a_support.element) : 0);
+        let a_power = a_battle.power + a_supportpower + GameMaster.Chemistry(a_battle.element, b_battle.element);
+        let b_supportpower = (b_support != null ? GameMaster.Chemistry(b_battle.element, b_support.element) : 0);
+        let b_power = b_battle.power + b_supportpower + GameMaster.Chemistry(b_battle.element, a_battle.element);
 
         return a_power - b_power;
     }
@@ -201,7 +201,7 @@ class GameMaster
 	];
     static Chemistry(destelement, srcelement)
     {
-        return table[destelement * 5 + srcelement];
+        return GameMaster.table[destelement * 5 + srcelement];
     }
 
 
