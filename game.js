@@ -1,5 +1,13 @@
 'use strict';
 
+class CardData
+{
+	constructor(element,power)
+	{
+		this.e = element;
+		this.p = power;
+	}
+}
 
 class PlayerData
 {
@@ -18,8 +26,8 @@ class PlayerData
 		{
 			for (let j = 1;j < 3;j++)
 			{
-				deck.push({element: i,power : j});
-				deck.push({element: i,power : j});
+				deck.push(new CardData(i,j));
+				deck.push(new CardData(i,j));
 			}
 		}
 		this.deck = shuffle(deck);
@@ -33,16 +41,16 @@ class PlayerData
 		this.damage = [];
 		this.used = [];
 		this.select = -1;
-		this.draw = 0;
+		this.draw = [];
 	}
 	DrawCard()
 	{
 		if (this.deck.length > 0)
 		{
-			this.hand.push(this.deck.pop());
-			return 1;
+			const c = this.deck.pop();
+			this.draw.push(c);
+			this.hand.push(c);
 		}
-		return 0;
 	}
 	Data()
 	{
@@ -91,6 +99,8 @@ class GameMaster
 	{
         this.player1.select = Math.min(Math.max(0, this.player1.select), this.player1.hand.length - 1);
         this.player2.select = Math.min(Math.max(0, this.player2.select), this.player2.hand.length - 1);
+		this.player1.draw = [];
+		this.player2.draw = [];
 
 		switch(this.phase)
 		{
@@ -128,18 +138,30 @@ class GameMaster
 		result.rival = player1;
 		result.damage = -this.damage;
 		this.p2result = JSON.stringify(result);
-/*
 	//通信データをそぎ落とす場合
-		let minmumresult ={
-			phase: this.phase,
-			yourdraw : [],//このPhaseでドローしたカードのみ
-			rivaldraw : [],
-			yourselect: 0,
-			rivalselect : 0,
-			damage : 0
-//デッキの枚数は初期値固定なら要らない
+		let r ={
+			p: this.phase,//phase
+			y :
+			{
+				d : [],//yourdraw
+				s : 0,//yourselect
+				c : 0,//yourdeckcount
+			},
+			r :
+			{
+				d : [],//rivaldraw
+				s : 0,//rivalselect
+				c : 0,//rivaldeckcount
+			},
+			d : 0//damage
 		}
-*/
+
+		const p1 = {d:this.player1.draw,s:this.player1.select,c:this.player1.deck.length};
+		const p2 = {d:this.player2.draw,s:this.player2.select,c:this.player2.deck.length};
+
+		this.p1result = JSON.stringify({p:this.phase,y:p1,r:p2,d:this.damage});
+		this.p2result = JSON.stringify({p:this.phase,y:p2,r:p1,d:-this.damage});
+
 	}
 
 	Battle()
@@ -163,20 +185,18 @@ class GameMaster
         if (life1 <= 0 || life2 <= 0)
         {
 			this.phase = Phases.GameEnd;
-			this.player1.draw = 0;
-			this.player2.draw = 0;
             return;
         }
         this.player1.used.push(battle1);
         this.player2.used.push(battle2);
 
-		this.player1.draw = this.player1.DrawCard();
-		this.player2.draw = this.player2.DrawCard();
+		this.player1.DrawCard();
+		this.player2.DrawCard();
 		if (p1damage > 0)
 		{
-			this.player1.draw += this.player1.DrawCard();
+			this.player1.DrawCard();
 		}else if (p2damage > 0){
-			this.player2.draw += this.player2.DrawCard();
+			this.player2.DrawCard();
 		}
 
 		if (this.damage == 0)
@@ -188,10 +208,10 @@ class GameMaster
 
     static Judge(a_battle, b_battle, a_support = null, b_support = null)
     {
-        let a_supportpower = (a_support != null ? GameMaster.Chemistry(a_battle.element, a_support.element) : 0);
-        let a_power = a_battle.power + a_supportpower + GameMaster.Chemistry(a_battle.element, b_battle.element);
-        let b_supportpower = (b_support != null ? GameMaster.Chemistry(b_battle.element, b_support.element) : 0);
-        let b_power = b_battle.power + b_supportpower + GameMaster.Chemistry(b_battle.element, a_battle.element);
+        let a_supportpower = (a_support != null ? GameMaster.Chemistry(a_battle.e, a_support.e) : 0);
+        let a_power = a_battle.p + a_supportpower + GameMaster.Chemistry(a_battle.e, b_battle.e);
+        let b_supportpower = (b_support != null ? GameMaster.Chemistry(b_battle.e, b_support.e) : 0);
+        let b_power = b_battle.p + b_supportpower + GameMaster.Chemistry(b_battle.e, a_battle.e);
 
         return a_power - b_power;
     }
@@ -222,7 +242,6 @@ class GameMaster
 
 		this.phase = Phases.BattlePhase;
         this.damage = 0;
-		this.player1.draw = this.player2.draw = 0;
 	}
 
 }

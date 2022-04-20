@@ -458,7 +458,7 @@ function InitGameElements()
 	const hand_element = document.getElementById('hand');
 	for (let i = 0;i < MAX_HAND_NUMBER + 2;i++)
 	{
-		const card = {element : 0,power : 1};
+		const card = {e : 0,p : 1};
 		const card_element = create_card_element(card);
 		card_element.classList.add("select");
 		card_element.onclick = function() {
@@ -484,7 +484,7 @@ function InitGameElements()
 	const ohand_element = document.getElementById('oppositehand');
 	for (let i = 0;i < MAX_HAND_NUMBER + 2;i++)
 	{
-		const card = {element : 0,power : 1};
+		const card = {e : 0,p : 1};
 		const card_element = create_card_element(card);
 		ohand_element.appendChild(card_element);
 	}	
@@ -565,15 +565,15 @@ function refresh()
 	}
 }
 
-const elements_color_table = ["#00F","#F00","#880","#999","#333"];
+const elements_color_table = ["#08F","#F00","#CC0","#999","#335"];
 function SetCardAttribute(elem,card)
 {
-	elem.setAttribute("style","color:" + elements_color_table[card.element] + ";display:inline-block");
-	elem.textContent = card.power;
+	elem.setAttribute("style","color:" + elements_color_table[card.e] + ";display:inline-block");
+	elem.textContent = card.p;
 }
 function card_html(card,class_string)
 {
-return '<span class="card ' + class_string + '" ><font color="' + elements_color_table[card.element] + '">' + card.power + '</font></span>';
+return '<span class="card ' + class_string + '" ><font color="' + elements_color_table[card.e] + '">' + card.p + '</font></span>';
 }
 function create_card_element(card)
 {
