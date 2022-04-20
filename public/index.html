@@ -225,7 +225,7 @@
 </style>
 <script>
 
-const Phases = { BattlePhase:0 , DamagePhase:1 , GameEndWin:2, GameEndLose:3, GameEndDraw:4};
+const Phases = { BattlePhase:0 , DamagePhase:1 , GameEnd:2};
 
 const GMSTATUS = { BattleChoice:1 ,BattleWait:2,DamageChoice:3,DamageWait:4, BattleEffect:5, GameEnd:6 };
 
@@ -276,6 +276,7 @@ class GameClient
 		this.phase = data.phase;
 		this.myself = data.you;
 		this.rival = data.rival;
+		this.damage = data.damage;
 		this.status = GameClient.StatusConvert(data.phase,data.damage);
 	}
 	  
@@ -359,10 +360,12 @@ window.onload = function() {
 
 		if (Game.status == GMSTATUS.GameEnd)
 		{
-			if (data.phase == Phases.GameEndWin){
+			const mylife = Game.myself.decknum + Game.myself.hand.length - (Game.damage > 0);
+			const rivallife = Game.rival.decknum + Game.rival.hand.length - (Game.damage < 0);
+			if (mylife > rivallife){
 				Game.message_middle = "Game Win";
 			}
-			else if (data.phase == Phases.GameEndLose){
+			else if (mylife < rivallife){
 				Game.message_middle = "Game Lose";
 			}
 			else{
@@ -383,7 +386,7 @@ window.onload = function() {
 
 		Game.message_top = Game.message_middle = Game.message_bottom = "";
 
-		if (this.laststatus == GMSTATUS.BattleChoice)
+		if (Game.laststatus == GMSTATUS.BattleChoice)
 		{
 //戦闘が行われていたら戦闘後表示状態
 			Game.battle_effect = true;

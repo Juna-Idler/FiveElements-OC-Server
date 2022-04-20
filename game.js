@@ -57,7 +57,7 @@ class PlayerData
 	}
 }
 
-const Phases = { BattlePhase:0 , DamagePhase:1 , GameEndWin:2, GameEndLose:3, GameEndDraw:4};
+const Phases = { BattlePhase:0 , DamagePhase:1 , GameEnd:2};
 
 
 class GameMaster
@@ -128,7 +128,18 @@ class GameMaster
 		result.rival = player1;
 		result.damage = -this.damage;
 		this.p2result = JSON.stringify(result);
-
+/*
+	//通信データをそぎ落とす場合
+		let minmumresult ={
+			phase: this.phase,
+			yourdraw : [],//このPhaseでドローしたカードのみ
+			rivaldraw : [],
+			yourselect: 0,
+			rivalselect : 0,
+			damage : 0
+//デッキの枚数は初期値固定なら要らない
+		}
+*/
 	}
 
 	Battle()
@@ -151,14 +162,7 @@ class GameMaster
         const life2 = this.player2.hand.length + this.player2.deck.length - p2damage;
         if (life1 <= 0 || life2 <= 0)
         {
-            const gameresult = life1 - life2;
-            if (gameresult > 0)
-                this.phase = Phases.GameEndWin;
-            else if (gameresult < 0)
-				this.phase = Phases.GameEndLose;
-            else
-				this.phase = Phases.GameEndDraw;
-
+			this.phase = Phases.GameEnd;
 			this.player1.draw = 0;
 			this.player2.draw = 0;
             return;
