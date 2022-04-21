@@ -8,6 +8,20 @@ class CardData
 		this.p = power;
 	}
 }
+//通信データの構造
+const senddata =
+{
+	p : Phases.BattlePhase,//phase
+	d : 0,//damage
+	y ://your data
+	{
+		d : [],//draw cards
+		s : 0,//selected hand index
+		c : 0,//deckcount
+	},
+	r : {d : [],s : 0,c : 0},//rival data
+}
+
 
 class PlayerData
 {
@@ -33,6 +47,7 @@ class PlayerData
 		this.deck = shuffle(deck);
 		
 		this.hand = [];
+		this.draw = [];
 		for (let i = 0;i < 4;i++)
 		{
 			this.DrawCard();
@@ -41,7 +56,6 @@ class PlayerData
 		this.damage = [];
 		this.used = [];
 		this.select = -1;
-		this.draw = [];
 	}
 	DrawCard()
 	{
@@ -51,17 +65,6 @@ class PlayerData
 			this.draw.push(c);
 			this.hand.push(c);
 		}
-	}
-	Data()
-	{
-		return {
-			hand : this.hand,
-			used : this.used,
-			damage : this.damage,
-			decknum : this.deck.length,
-			select : this.select,
-			draw : this.draw
-		};
 	}
 }
 
@@ -121,47 +124,11 @@ class GameMaster
 
 	MakeResultData()
 	{
-		let result = {
-			phase: this.phase,
-			you : {},
-			rival : {},
-			damage : 0
-		}
-		const player1 = this.player1.Data();
-		const player2 = this.player2.Data();
-
-		result.you = player1;
-		result.rival = player2;
-		result.damage = this.damage;
-		this.p1result = JSON.stringify(result);
-		result.you = player2;
-		result.rival = player1;
-		result.damage = -this.damage;
-		this.p2result = JSON.stringify(result);
-	//通信データをそぎ落とす場合
-		let r ={
-			p: this.phase,//phase
-			y :
-			{
-				d : [],//yourdraw
-				s : 0,//yourselect
-				c : 0,//yourdeckcount
-			},
-			r :
-			{
-				d : [],//rivaldraw
-				s : 0,//rivalselect
-				c : 0,//rivaldeckcount
-			},
-			d : 0//damage
-		}
-
 		const p1 = {d:this.player1.draw,s:this.player1.select,c:this.player1.deck.length};
 		const p2 = {d:this.player2.draw,s:this.player2.select,c:this.player2.deck.length};
 
 		this.p1result = JSON.stringify({p:this.phase,y:p1,r:p2,d:this.damage});
 		this.p2result = JSON.stringify({p:this.phase,y:p2,r:p1,d:-this.damage});
-
 	}
 
 	Battle()
@@ -241,7 +208,6 @@ class GameMaster
         }
 
 		this.phase = Phases.BattlePhase;
-        this.damage = 0;
 	}
 
 }

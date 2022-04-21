@@ -235,21 +235,53 @@ const player_data =
 	used : "card object array",
 	damage : "card object array",
 	decknum : "int",
-	select : "int",
 	draw : "int"
 };
+
+class PlayerData
+{
+	constructor(pdata)
+	{
+		this.hand = pdata.d;
+		this.used = [];
+		this.damage = [];
+		this.decknum = pdata.c;
+		this.draw = pdata.d.length;
+	}
+	Update(lastphase,pdata,damage)
+	{
+		const select = this.hand[pdata.s];
+		switch (lastphase)
+		{
+			case Phases.BattlePhase:
+				this.hand.splice(pdata.s,1);
+				this.used.push(select);
+				break;
+			case Phases.DamagePhase:
+				if (damage)
+				{
+					this.hand.splice(pdata.s,1);
+					this.damage.push(select);
+				}
+				break;
+		}
+		this.hand.push(...pdata.d);
+		this.decknum = pdata.c;
+		this.draw = pdata.d.length;
+	}
+}
 
 class GameClient
 {
 	constructor(data)
 	{
-		this.myself = data.you;
-		this.rival = data.rival;
-		this.phase = data.phase;
-		this.damage = data.damage;
+		this.myself = new PlayerData(data.y);
+		this.rival = new PlayerData(data.r);
+		this.phase = data.p;
+		this.damage = data.d;
 		this.laststatus = 0;
 
-		this.status = GameClient.StatusConvert(data.phase,data.damage);
+		this.status = GameClient.StatusConvert(data.p,data.d);
 
 		this.battle_effect = false;
 
@@ -273,49 +305,11 @@ class GameClient
 	Update(data)
 	{
 		this.laststatus = this.status;
-		this.phase = data.phase;
-		this.myself = data.you;
-		this.rival = data.rival;
-		this.damage = data.damage;
-		this.status = GameClient.StatusConvert(data.phase,data.damage);
-	}
-	  
-	BattleEffect()
-	{
-		this.battle_effect = false;
-		if (!this.player.battle)
-			{return;}
-
-		this.player.hand.push(...this.player.draw);
-		this.player.draw.length = 0;
-		this.opposite.hand.push(...this.opposite.draw);
-		this.opposite.draw.length = 0;
-
-
-		if (this.player.combo) {
-			this.player.discard.push(this.player.combo);
-			this.player.combo = null;
-		}
-		if (this.opposite.combo) {
-			this.opposite.discard.push(this.opposite.combo);
-			this.opposite.combo = null;
-		}
-		if (this.player.damage > 0)
-		{
-			this.opposite.combo = this.opposite.battle;
-			this.player.discard.push(this.player.battle);
-		}
-		else if (this.opposite.damage > 0)
-		{
-			this.player.combo = this.player.battle;
-			this.opposite.discard.push(this.opposite.battle);
-		}
-		else
-		{
-			this.player.discard.push(this.player.battle);
-			this.opposite.discard.push(this.opposite.battle);
-		}
-		this.player.battle = this.opposite.battle = null;
+		this.myself.Update(this.phase,data.y,this.damage > 0);
+		this.rival.Update(this.phase,data.r,this.damage < 0);
+		this.phase = data.p;
+		this.damage = data.d;
+		this.status = GameClient.StatusConvert(data.p,data.d);
 	}
 }
   
@@ -451,7 +445,6 @@ function InitGameElements()
 			return;
 		}
 		elem.style.display = "none";
-		Game.BattleEffect();
 		refresh();
 	}
 
