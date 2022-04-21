@@ -96,7 +96,7 @@ wss.on('connection', (ws) => {
 
     ws.on('close', () => {
         if (ws === wait_client) {
-            wait_client = nulll;
+            wait_client = null;
         }
         if (Rooms.has(ws))
         {

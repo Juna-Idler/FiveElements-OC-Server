@@ -11,7 +11,7 @@ class CardData
 //通信データの構造
 const senddata =
 {
-	p : Phases.BattlePhase,//phase
+	p : 0,//phase
 	d : 0,//damage
 	y ://your data
 	{
@@ -127,8 +127,8 @@ class GameMaster
 		const p1 = {d:this.player1.draw,s:this.player1.select,c:this.player1.deck.length};
 		const p2 = {d:this.player2.draw,s:this.player2.select,c:this.player2.deck.length};
 
-		this.p1result = JSON.stringify({p:this.phase,y:p1,r:p2,d:this.damage});
-		this.p2result = JSON.stringify({p:this.phase,y:p2,r:p1,d:-this.damage});
+		this.p1result = JSON.stringify({ p: this.phase, d: this.damage,y:p1,r:p2,});
+		this.p2result = JSON.stringify({ p: this.phase, d: -this.damage,y:p2,r:p1,});
 	}
 
 	Battle()
