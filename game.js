@@ -11,15 +11,15 @@ class CardData
 //通信データの構造
 const senddata =
 {
-	p : 0,//phase
-	d : 0,//damage
-	y ://your data
+	p : 0,//phase count 雑に言えばターン数 偶数BattlePhase 奇数DamagePhase マイナスGameEnd
+	d : 0,//damage 前回のBattlePhaseで発生したダメージ ＋自分にダメージ －相手にダメージ
+	y ://your data 自分（このデータを受け取った側）の差分データ
 	{
-		d : [],//draw cards
-		s : 0,//selected hand index
-		c : 0,//deckcount
+		d : [],//draw cards 今はカード情報を直接入れているが、最終的にはIDの予定
+		s : 0,//selected hand index 前回選んだ手札の位置
+		c : 0,//deckcount デッキ残り枚数 最初のデッキ枚数を別の手段で確定できるなら省略可能
 	},
-	r : {d : [],s : 0,c : 0},//rival data
+	r : {d : [],s : 0,c : 0},//rival data 対戦相手の差分データ
 }
 
 
@@ -68,27 +68,27 @@ class PlayerData
 	}
 }
 
-const Phases = { BattlePhase:0 , DamagePhase:1 , GameEnd:2};
+//const Phases = { BattlePhase:0 , DamagePhase:1 , GameEnd:2};
 
 
 class GameMaster
 {
 	constructor()
 	{
-		this.phase = Phases.BattlePhase;
+		this.phase = 0;
+		this.damage = 0;
 		this.player1 = new PlayerData();
 		this.player2 = new PlayerData();
-		this.damage = 0;
 
 		this.MakeResultData();
 	}
 
-	SetP1Select(index){this.player1.select = index;}
-	SetP2Select(index){this.player2.select = index;}
+	SetP1Select(phase,index){if (phase==this.phase)this.player1.select = index;}
+	SetP2Select(phase,index){if (phase==this.phase)this.player2.select = index;}
 
 	Selected()
 	{
-		if (this.phase == Phases.DamagePhase)
+		if (this.phase & 1)
 		{
 			if ((this.damage > 0 && this.player1.select >= 0) ||
 				(this.damage < 0 && this.player2.select >= 0))
@@ -105,17 +105,16 @@ class GameMaster
 		this.player1.draw = [];
 		this.player2.draw = [];
 
-		switch(this.phase)
+		if (this.phase < 0)
 		{
-		case Phases.BattlePhase:
-			this.Battle();
-			break;
-		case Phases.DamagePhase:
-			this.Damage();
-			break;
-		default:
-			break;
+			this.player1.select = this.player2.select = -1;
+			return [{},{}];
 		}
+
+		if (this.phase & 1)
+			this.Damage();
+		else
+			this.Battle();
 		this.MakeResultData();
 		this.player1.select = this.player2.select = -1;
 	
@@ -151,7 +150,7 @@ class GameMaster
         const life2 = this.player2.hand.length + this.player2.deck.length - p2damage;
         if (life1 <= 0 || life2 <= 0)
         {
-			this.phase = Phases.GameEnd;
+			this.phase = -1;
             return;
         }
         this.player1.used.push(battle1);
@@ -160,16 +159,11 @@ class GameMaster
 		this.player1.DrawCard();
 		this.player2.DrawCard();
 		if (p1damage > 0)
-		{
-			this.player1.DrawCard();
-		}else if (p2damage > 0){
-			this.player2.DrawCard();
-		}
+		{this.player1.DrawCard();}
+		else if (p2damage > 0)
+		{this.player2.DrawCard();}
 
-		if (this.damage == 0)
-		 {this.phase = Phases.BattlePhase;}
-		else
-		 {this.phase = Phases.DamagePhase;}
+		this.phase += 1 + (this.damage == 0);
 	}	
 
 
@@ -200,14 +194,13 @@ class GameMaster
 	{
         if (this.damage > 0)
         {
-			this.player1.damage.push(this.player1.hand.splice(this.player1.select,1));
+			this.player1.damage.push(...this.player1.hand.splice(this.player1.select,1));
         }
         else if (this.damage < 0)
         {
-			this.player2.damage.push(this.player2.hand.splice(this.player2.select,1));
+			this.player2.damage.push(...this.player2.hand.splice(this.player2.select,1));
         }
-
-		this.phase = Phases.BattlePhase;
+		this.phase++;
 	}
 
 }

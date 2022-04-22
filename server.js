@@ -28,17 +28,17 @@ class GameRoom
         this.p1socket.send(this.game.p1result);
         this.p2socket.send(this.game.p2result);
     }
-    Select(ws,index)
+    Select(ws,data)
     {
         if (ws === this.p1socket)
         {
-            this.game.SetP1Select(index);
-            console.log("Select P1:index=" + index);
+            this.game.SetP1Select(data.phase,data.index);
+            console.log("Select P1:phase " + data.phase + "index=" + data.index);
         }
         else if (ws === this.p2socket)
         {
-             this.game.SetP2Select(index);
-             console.log("Select P2:index=" + index);
+             this.game.SetP2Select(data.phase,data.index);
+             console.log("Select P2:phase " + data.phase + " index=" + data.index);
         }
         if (this.game.Selected())
         {
@@ -46,6 +46,7 @@ class GameRoom
             const [p1,p2] = this.game.Deside();
             this.p1socket.send(p1);
             this.p2socket.send(p2);
+            console.log(p1);
         }
     }
 }
@@ -59,14 +60,13 @@ var JoinCommand = {
 }
 var SelectCommand = {
     command:"Select",
+    phase:"phase_count",
     index:"select_hand_index"
 }
 
 wss.on('connection', (ws) => {
     console.log("connect:");
     ws.on('message', (json) => {
-        console.log("message:" + json);
-
         const data = JSON.parse(json);
         switch (data.command)
         {
@@ -88,7 +88,7 @@ wss.on('connection', (ws) => {
             break;
         case "Select":
             const game = Rooms.get(ws);
-            game.Select(ws,data.index);
+            game.Select(ws,data);
             break;
         }
 

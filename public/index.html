@@ -225,7 +225,6 @@
 </style>
 <script>
 
-const Phases = { BattlePhase:0 , DamagePhase:1 , GameEnd:2};
 
 const GMSTATUS = { BattleChoice:1 ,BattleWait:2,DamageChoice:3,DamageWait:4, BattleEffect:5, GameEnd:6 };
 
@@ -251,19 +250,18 @@ class PlayerData
 	Update(lastphase,pdata,damage)
 	{
 		const select = this.hand[pdata.s];
-		switch (lastphase)
+		if (lastphase & 1)
 		{
-			case Phases.BattlePhase:
+			if (damage)
+			{
 				this.hand.splice(pdata.s,1);
-				this.used.push(select);
-				break;
-			case Phases.DamagePhase:
-				if (damage)
-				{
-					this.hand.splice(pdata.s,1);
-					this.damage.push(select);
-				}
-				break;
+				this.damage.push(select);
+			}
+		}
+		else
+		{
+			this.hand.splice(pdata.s,1);
+			this.used.push(select);
 		}
 		this.hand.push(...pdata.d);
 		this.decknum = pdata.c;
@@ -291,14 +289,16 @@ class GameClient
 	}
 	static StatusConvert(phase,damage)
 	{
-		switch (phase)
+		if (phase < 0)
+			return GMSTATUS.GameEnd;
+
+		if (phase & 1)
 		{
-			case Phases.BattlePhase:
-				return GMSTATUS.BattleChoice;
-			case Phases.DamagePhase:
-				return damage > 0 ? GMSTATUS.DamageChoice:GMSTATUS.DamageWait;
-			default:
-				return GMSTATUS.GameEnd;
+			return damage > 0 ? GMSTATUS.DamageChoice:GMSTATUS.DamageWait;
+		}
+		else
+		{
+			return GMSTATUS.BattleChoice;
 		}
 		return 0;
 	}
@@ -455,7 +455,7 @@ function InitGameElements()
 		const card_element = create_card_element(card);
 		card_element.classList.add("select");
 		card_element.onclick = function() {
-			const select_command = {command:"Select",index:i};
+			const select_command = {command:"Select",phase:Game.phase,index:i};
 			console.log("send:Select index="+ i);
 			if (Game.status == GMSTATUS.BattleChoice)
 			{
