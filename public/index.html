@@ -375,7 +375,7 @@ window.onload = function() {
 		if (Game.battle_effect)
 		{
 //戦闘後表示状態の時は更新しない
-			return;
+//			return;
 		}
 
 		Game.message_top = Game.message_middle = Game.message_bottom = "";
@@ -387,11 +387,11 @@ window.onload = function() {
 
 			if (Game.damage < 0) {
 				Game.waiting_damage = true;
-				Game.message_top = "Damage " + Game.opposite.damage;
+				Game.message_top = "Damage";
 			}
 			else if (Game.damage > 0) {
 				Game.waiting_damage = true;
-				Game.message_bottom = "Damage " + Game.player.damage;
+				Game.message_bottom = "Damage";
 			}
 			else {
 				Game.message_middle = "Draw";

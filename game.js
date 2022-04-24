@@ -21,7 +21,7 @@ const senddata =
 	},
 	r : {d : [],s : 0,c : 0},//rival data 対戦相手の差分データ
 }
-
+//まあサイズ気にするなら最終的にバイナリになる可能性
 
 class PlayerData
 {
@@ -98,7 +98,7 @@ class GameMaster
 			return this.player1.select >= 0 && this.player2.select >= 0;
 	}
 
-	Deside()
+	Decide()
 	{
         this.player1.select = Math.min(Math.max(0, this.player1.select), this.player1.hand.length - 1);
         this.player2.select = Math.min(Math.max(0, this.player2.select), this.player2.hand.length - 1);
@@ -117,7 +117,8 @@ class GameMaster
 			this.Battle();
 		this.MakeResultData();
 		this.player1.select = this.player2.select = -1;
-	
+
+
 		return [this.p1result,this.p2result];
 	}
 
