@@ -15,35 +15,55 @@ const wss = new WebSocket.Server({ server });
 const GameMaster = require("./game");
 
 
-var wait_client = null;
+
+class GameInitialPlayerData
+{
+    constructor(name,hand,deckcount)
+    {
+        this.name = name;
+        this.hand = hand;
+        this.deckcount = deckcount;
+    }
+}
+class ClientData
+{
+    constructor(ws,name)
+    {
+        this.ws = ws;
+        this.name = name;
+    }
+}
 
 class GameRoom
 {
-    constructor(ws1,ws2,battleSec = 15,damageSec = 10)
+    constructor(cd1,cd2,battleSec = 15,damageSec = 10)
     {
         this.game = new GameMaster();
-        this.p1socket = ws1;
-        this.p2socket = ws2;
+        this.p1client = cd1;
+        this.p2client = cd2;
 
 		this.timeout = null;
 		this.DamageTimeoutCount = damageSec * 1000 + 5000;
 		this.BattleTimeoutCount = battleSec * 1000 + 5000;
 
-        this.p1socket.send(this.game.p1result);
-        this.p2socket.send(this.game.p2result);
-        SetBattleTimeOut();
+        const p1initial = { name: this.p1client.name, hand:this.game.player1.hand,deckcount:this.game.player1.deck.length};
+        const p2initial = { name: this.p2client.name, hand:this.game.player2.hand,deckcount:this.game.player2.deck.length};
+
+        this.p1client.ws.send(JSON.stringify({y:p1initial,r:p2initial,battletime:battleSec,damagetime:damageSec}));
+        this.p2client.ws.send(JSON.stringify({y:p2initial,r:p1initial,battletime:battleSec,damagetime:damageSec}));
+        this.SetBattleTimeOut();
 
         console.log("GameStart:");
         console.log(this.game.p1result);
     }
     Select(ws,data)
     {
-        if (ws === this.p1socket)
+        if (ws === this.p1client.ws)
         {
             this.game.SetP1Select(data.phase,data.index);
             console.log("Select P1:phase " + data.phase + " index=" + data.index);
         }
-        else if (ws === this.p2socket)
+        else if (ws === this.p2client.ws)
         {
              this.game.SetP2Select(data.phase,data.index);
              console.log("Select P2:phase " + data.phase + " index=" + data.index);
@@ -62,13 +82,13 @@ class GameRoom
     {
         console.log("Decide:");
         const [p1,p2] = this.game.Decide();
-        this.p1socket.send(p1);
-        this.p2socket.send(p2);
+        this.p1client.ws.send(p1);
+        this.p2client.ws.send(p2);
         console.log(p1);
         if (this.game.phase < 0)
         {
-            this.p1socket.close(1000);
-            this.p2socket.close(1000);
+            this.p1client.ws.close(1000);
+            this.p2client.ws.close(1000);
             console.log("Room Close");
             return;
         }
@@ -91,7 +111,7 @@ class GameRoom
         }
         else
         {
-            SetBattleTimeOut();
+            this.SetBattleTimeOut();
         }
     }
     SetBattleTimeOut()
@@ -106,20 +126,75 @@ class GameRoom
             this.Decide();
         },this.BattleTimeoutCount);        
     }
+    Surrender(ws)
+    {
+        if (this.timeout)
+            clearTimeout(this.timeout);
+        if (ws == this.p1client.ws)
+        {
+            this.p1client.ws.send(JSON.stringify({reason:"Surrender",game:-1}));
+            this.p2client.ws.send(JSON.stringify({reason:"Surrender",game:1}));
+        }
+        else if (ws == this.p2client.ws)
+        {
+            this.p2client.ws.send(JSON.stringify({reason:"Surrender",game:-1}));
+            this.p1client.ws.send(JSON.stringify({reason:"Surrender",game:1}));
+        }
+        this.p1client.ws.close();
+        this.p2client.ws.Close();
+    }
+    Disconnect(ws)
+    {
+        if (this.timeout)
+            clearTimeout(this.timeout);
+        if (ws == this.p1client.ws)
+        {
+            this.p2client.ws.send(JSON.stringify({reason:"Disconnect",game:1}));
+            this.p2client.ws.Close();
+        }
+        else if (ws == this.p2client.ws)
+        {
+            this.p1client.ws.send(JSON.stringify({reason:"Disconnect",game:1}));
+            this.p1client.ws.close();
+        }
+    }
+    Terminalize()
+    {
+        if (this.timeout)
+            clearTimeout(this.timeout);
+
+        this.p1client.ws.send(JSON.stringify({reason:"term",game:0}));
+        this.p2client.ws.send(JSON.stringify({reason:"term",game:0}));
+        this.p1client.ws.close();
+        this.p2client.ws.Close();
+    }
 }
 
+var wait_client = null;
 var WaitRooms = new Map();
 var Rooms = new Map();
 
 var JoinCommand = {
     command:"Join",
-    wait_room_name:"???"
+    wait_room_name:"???",
+    playername:""
 }
 var SelectCommand = {
     command:"Select",
     phase:"phase_count",
     index:"select_hand_index"
 }
+var EndCommand = {
+    command:"End",
+    reason:"",
+    message:""
+}
+//ゲームの続行が不可能となったときにクライアントに送るデータ
+const ExSendMessage = {
+reason:"",//終了理由
+game:0,//勝ち負けの扱い 1=自分の勝ち 0=無効試合 -1=相手の勝ち
+}
+
 
 wss.on('connection', (ws,req) => {
 //    req.url
@@ -129,23 +204,35 @@ wss.on('connection', (ws,req) => {
         switch (data.command)
         {
         case "Join":
-            if (wait_client && wait_client.readyState == WebSocket.OPEN)
+            if (wait_client && wait_client.ws.readyState == WebSocket.OPEN)
             {
                 console.log("Join:Matching");
-                let game = new GameRoom(wait_client,ws);
+                let game = new GameRoom(wait_client,new ClientData(ws,data.playername));
                 Rooms.set(ws,game);
-                Rooms.set(wait_client,game);
+                Rooms.set(wait_client.ws,game);
                 wait_client = null;
             }
             else{
-                wait_client = ws;
-
+                wait_client = new ClientData(ws,data.playername);
                 console.log("Join:Wait");
             }
             break;
         case "Select":
-            const game = Rooms.get(ws);
-            game.Select(ws,data);
+            {
+                const game = Rooms.get(ws);
+                game?.Select(ws,data);
+            }
+            break;
+        case "End":
+            {
+                const game = Rooms.get(ws);
+                if (game)
+                {
+                    game.Surrender(ws);
+                    Rooms.delete(game.p1client.ws);
+                    Rooms.delete(game.p2client.ws);
+                }
+            }
             break;
         }
 
@@ -158,7 +245,10 @@ wss.on('connection', (ws,req) => {
         }
         if (Rooms.has(ws))
         {
-            Rooms.delete(ws);
+            const game = Rooms.get(ws);
+            game.Disconnect(ws);
+            Rooms.delete(game.p1client.ws);
+            Rooms.delete(game.p2client.ws);
             console.log("room delete");
         }
 

@@ -239,13 +239,14 @@ const player_data =
 
 class PlayerData
 {
-	constructor(pdata)
+	constructor(name,hand,deckcount)
 	{
-		this.hand = pdata.d;
+		this.name = name;
+		this.hand = hand;
 		this.used = [];
 		this.damage = [];
-		this.decknum = pdata.c;
-		this.draw = pdata.d.length;
+		this.decknum = deckcount;
+		this.draw = hand.length;
 	}
 	Update(lastphase,pdata,damage)
 	{
@@ -273,13 +274,13 @@ class GameClient
 {
 	constructor(data)
 	{
-		this.myself = new PlayerData(data.y);
-		this.rival = new PlayerData(data.r);
-		this.phase = data.p;
-		this.damage = data.d;
+		this.myself = new PlayerData(data.y.name,data.y.hand,data.y.deckcount);
+		this.rival = new PlayerData(data.r.name,data.r.hand,data.r.deckcount);
+		this.phase = 0;
+		this.damage = 0;
 		this.laststatus = 0;
 
-		this.status = GameClient.StatusConvert(data.p,data.d);
+		this.status = GMSTATUS.BattleChoice;
 
 		this.battle_effect = false;
 
@@ -333,7 +334,7 @@ window.onload = function() {
 	matting.onclick = function(){
 		if (socket.readyState == WebSocket.OPEN)
 		{
-			const msg = {command:"Join"};
+			const msg = {command:"Join",playername:"Browser"};
 			socket.send(JSON.stringify(msg));
 			matting.style.cursor ="wait";
 			matting.innerText = "Wait another player";
