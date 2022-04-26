@@ -34,6 +34,13 @@ class ClientData
     }
 }
 
+var abort = {
+	p : 0,	d : 0,
+	y : {d : [],s : 0,c : 0},
+	r : {d : [],s : 0,c : 0},
+	a:"",
+}
+
 class GameRoom
 {
     constructor(cd1,cd2,battleSec = 15,damageSec = 10)
@@ -87,9 +94,7 @@ class GameRoom
         console.log(p1);
         if (this.game.phase < 0)
         {
-            this.p1client.ws.close(1000);
-            this.p2client.ws.close(1000);
-            console.log("Room Close");
+            console.log("Game End");
             return;
         }
         if (this.game.phase & 1)
@@ -129,33 +134,55 @@ class GameRoom
     Surrender(ws)
     {
         if (this.timeout)
+        {
             clearTimeout(this.timeout);
+            this.timeout = null;
+        }
+        abort.a = "Surrender";
         if (ws == this.p1client.ws)
         {
-            this.p1client.ws.send(JSON.stringify({reason:"Surrender",game:-1}));
-            this.p2client.ws.send(JSON.stringify({reason:"Surrender",game:1}));
+            console.log("Surrender p1");
+            abort.d = 1;
+            this.p1client.ws.send(JSON.stringify(abort));
+            abort.d = -1;
+            this.p2client.ws.send(JSON.stringify(abort));
         }
         else if (ws == this.p2client.ws)
         {
-            this.p2client.ws.send(JSON.stringify({reason:"Surrender",game:-1}));
-            this.p1client.ws.send(JSON.stringify({reason:"Surrender",game:1}));
+            console.log("Surrender p2");
+            abort.d = 1;
+            this.p2client.ws.send(JSON.stringify(abort));
+            abort.d = -1;
+            this.p1client.ws.send(JSON.stringify(abort));
         }
-        this.p1client.ws.close();
-        this.p2client.ws.Close();
+//        setTimeout(()=>this.p1client.ws.close(1000),1000);
+//        setTimeout(()=>this.p2client.ws.close(1000),1000);
     }
     Disconnect(ws)
     {
         if (this.timeout)
+        {
             clearTimeout(this.timeout);
+            this.timeout = null;
+        }
+        abort.a = "Disconnect";
         if (ws == this.p1client.ws)
         {
-            this.p2client.ws.send(JSON.stringify({reason:"Disconnect",game:1}));
-            this.p2client.ws.Close();
+            if (this.p2client.ws.readyState == OPEN)
+            {
+                abort.d = -1;
+                this.p2client.ws.send(JSON.stringify(abort));
+            }
+//            setTimeout(()=>this.p2client.ws.close(1000),1000);
         }
         else if (ws == this.p2client.ws)
         {
-            this.p1client.ws.send(JSON.stringify({reason:"Disconnect",game:1}));
-            this.p1client.ws.close();
+            if (this.p1client.ws.readyState == OPEN)
+            {
+                abort.d = -1;
+                this.p1client.ws.send(JSON.stringify(abort));
+            }
+//            setTimeout(()=>this.p1client.ws.close(1000),1000);
         }
     }
     Terminalize()
@@ -163,10 +190,13 @@ class GameRoom
         if (this.timeout)
             clearTimeout(this.timeout);
 
-        this.p1client.ws.send(JSON.stringify({reason:"term",game:0}));
-        this.p2client.ws.send(JSON.stringify({reason:"term",game:0}));
-        this.p1client.ws.close();
-        this.p2client.ws.Close();
+        abort.d = 0;
+        abort.a = "Term";
+
+        this.p1client.ws.send(JSON.stringify(abort));
+        this.p2client.ws.send(JSON.stringify(abort));
+//        setTimeout(()=>this.p1client.ws.close(1000),1000);
+//        setTimeout(()=>this.p2client.ws.close(1000),1000);
     }
 }
 
@@ -188,11 +218,6 @@ var EndCommand = {
     command:"End",
     reason:"",
     message:""
-}
-//ゲームの続行が不可能となったときにクライアントに送るデータ
-const ExSendMessage = {
-reason:"",//終了理由
-game:0,//勝ち負けの扱い 1=自分の勝ち 0=無効試合 -1=相手の勝ち
 }
 
 
@@ -228,9 +253,9 @@ wss.on('connection', (ws,req) => {
                 const game = Rooms.get(ws);
                 if (game)
                 {
-                    game.Surrender(ws);
                     Rooms.delete(game.p1client.ws);
                     Rooms.delete(game.p2client.ws);
+                    game.Surrender(ws);
                 }
             }
             break;
@@ -246,10 +271,9 @@ wss.on('connection', (ws,req) => {
         if (Rooms.has(ws))
         {
             const game = Rooms.get(ws);
-            game.Disconnect(ws);
             Rooms.delete(game.p1client.ws);
             Rooms.delete(game.p2client.ws);
-            console.log("room delete");
+            game.Disconnect(ws);
         }
 
     });
