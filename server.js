@@ -2,12 +2,14 @@
 
 const path = require('path');
 const express = require('express');
+const cors = require('cors');
 const WebSocket = require('ws');
 
 const PORT = process.env.PORT || 8080;
 
 const app = express();
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(cors());
 const server = app.listen(PORT, () => console.log(`Listening on ${PORT}`));
 const wss = new WebSocket.Server({ server });
 
