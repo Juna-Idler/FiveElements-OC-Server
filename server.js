@@ -168,7 +168,7 @@ class GameRoom
         abort.a = "Disconnect";
         if (ws == this.p1client.ws)
         {
-            if (this.p2client.ws.readyState == OPEN)
+            if (this.p2client.ws.readyState == WebSocket.OPEN)
             {
                 abort.d = -1;
                 this.p2client.ws.send(JSON.stringify(abort));
@@ -177,7 +177,7 @@ class GameRoom
         }
         else if (ws == this.p2client.ws)
         {
-            if (this.p1client.ws.readyState == OPEN)
+            if (this.p1client.ws.readyState == WebSocket.OPEN)
             {
                 abort.d = -1;
                 this.p1client.ws.send(JSON.stringify(abort));
