@@ -150,14 +150,14 @@ class GameMaster
 
 	Battle()
 	{
-		const battle1 = GameMaster.CC[this.player1.hand[this.player1.select]-1];
-		const battle2 = GameMaster.CC[this.player2.hand[this.player2.select]-1];
+		const battle1 = GameMaster.CC[this.player1.hand[this.player1.select]];
+		const battle2 = GameMaster.CC[this.player2.hand[this.player2.select]];
 
 		this.player1.hand.splice(this.player1.select,1);
 		this.player2.hand.splice(this.player2.select,1);
 
-		const support1 = this.player1.used.length == 0 ? null : GameMaster.CC[this.player1.used[this.player1.used.length-1]-1];
-        const support2 = this.player2.used.length == 0 ? null : GameMaster.CC[this.player2.used[this.player2.used.length-1]-1];
+		const support1 = this.player1.used.length == 0 ? null : GameMaster.CC[this.player1.used[this.player1.used.length-1]];
+        const support2 = this.player2.used.length == 0 ? null : GameMaster.CC[this.player2.used[this.player2.used.length-1]];
 
 		const battleresult = GameMaster.Judge(battle1,battle2,support1,support2);
 		const p1damage = (battleresult < 0);
