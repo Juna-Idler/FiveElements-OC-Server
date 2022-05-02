@@ -228,6 +228,20 @@
 
 const GMSTATUS = { BattleChoice:1 ,BattleWait:2,DamageChoice:3,DamageWait:4, BattleEffect:5, GameEnd:6 };
 
+const cardcatalog = {"CardCatalog":[
+	{"ID":0,"Element":-1,"Power":0},
+	{"ID":1,"Element":0,"Power":1},
+	{"ID":2,"Element":0,"Power":2},
+	{"ID":3,"Element":1,"Power":1},
+	{"ID":4,"Element":1,"Power":2},
+	{"ID":5,"Element":2,"Power":1},
+	{"ID":6,"Element":2,"Power":2},
+	{"ID":7,"Element":3,"Power":1},
+	{"ID":8,"Element":3,"Power":2},
+	{"ID":9,"Element":4,"Power":1},
+	{"ID":10,"Element":4,"Power":2}
+]};
+
 const player_data =
 {
 	hand : "card object array",
@@ -452,8 +466,7 @@ function InitGameElements()
 	const hand_element = document.getElementById('hand');
 	for (let i = 0;i < MAX_HAND_NUMBER + 2;i++)
 	{
-		const card = {e : 0,p : 1};
-		const card_element = create_card_element(card);
+		const card_element = create_card_element(1);
 		card_element.classList.add("select");
 		card_element.onclick = function() {
 			const select_command = {command:"Select",phase:Game.phase,index:i};
@@ -478,8 +491,7 @@ function InitGameElements()
 	const ohand_element = document.getElementById('oppositehand');
 	for (let i = 0;i < MAX_HAND_NUMBER + 2;i++)
 	{
-		const card = {e : 0,p : 1};
-		const card_element = create_card_element(card);
+		const card_element = create_card_element(1);
 		ohand_element.appendChild(card_element);
 	}	
 
@@ -562,12 +574,12 @@ function refresh()
 const elements_color_table = ["#08F","#F00","#CC0","#999","#335"];
 function SetCardAttribute(elem,card)
 {
-	elem.setAttribute("style","color:" + elements_color_table[card.e] + ";display:inline-block");
-	elem.textContent = card.p;
+	elem.setAttribute("style","color:" + elements_color_table[cardcatalog.CardCatalog[card].Element] + ";display:inline-block");
+	elem.textContent = cardcatalog.CardCatalog[card].Power;
 }
 function card_html(card,class_string)
 {
-return '<span class="card ' + class_string + '" ><font color="' + elements_color_table[card.e] + '">' + card.p + '</font></span>';
+return '<span class="card ' + class_string + '" ><font color="' + elements_color_table[cardcatalog.CardCatalog[card].Element] + '">' + cardcatalog.CardCatalog[card].Power + '</font></span>';
 }
 function create_card_element(card)
 {

@@ -1,13 +1,29 @@
 'use strict';
+const fs = require("fs");
 
 class CardData
 {
-	constructor(element,power)
+	constructor(id,element,power)
 	{
-		this.e = element;
-		this.p = power;
+		this.ID = id;
+		this.Element = element;
+		this.Power = power;
 	}
 }
+class CardCatalog
+{
+	constructor()
+	{
+		const json = fs.readFileSync("cardcatalog.json", "utf8");
+		const catalog = JSON.parse(json);
+		this.catalog = catalog.CardCatalog;
+	}
+	Get(id)
+	{
+		return this.catalog[id];
+	}
+}
+
 //通信データの構造
 const senddata =
 {
@@ -15,7 +31,7 @@ const senddata =
 	d : 0,//damage 前回のBattlePhaseで発生したダメージ ＋自分にダメージ －相手にダメージ
 	y ://your data 自分（このデータを受け取った側）の差分データ
 	{
-		d : [],//draw cards 今はカード情報を直接入れているが、最終的にはIDの予定
+		d : [],//draw cards ドローしたカードのIDの配列
 		s : 0,//selected hand index 前回選んだ手札の位置
 		c : 0,//deckcount デッキ残り枚数 最初のデッキ枚数を別の手段で確定できるなら省略可能
 	},
@@ -38,13 +54,10 @@ class PlayerData
 		}
 
 		let deck = [];
-		for (let i = 0;i < 5;i++)
+		for (let i = 0;i < 10;i++)
 		{
-			for (let j = 1;j < 3;j++)
-			{
-				deck.push(new CardData(i,j));
-				deck.push(new CardData(i,j));
-			}
+			deck.push(i + 1);
+			deck.push(i + 1);
 		}
 		this.deck = shuffle(deck);
 		
@@ -75,6 +88,8 @@ class PlayerData
 
 class GameMaster
 {
+	static CardCatalog =  new CardCatalog();
+	static CC = GameMaster.CardCatalog.catalog;
 	constructor()
 	{
 		this.phase = 0;
@@ -135,14 +150,14 @@ class GameMaster
 
 	Battle()
 	{
-		const battle1 = this.player1.hand[this.player1.select];
-		const battle2 = this.player2.hand[this.player2.select];
+		const battle1 = GameMaster.CC[this.player1.hand[this.player1.select]-1];
+		const battle2 = GameMaster.CC[this.player2.hand[this.player2.select]-1];
 
 		this.player1.hand.splice(this.player1.select,1);
 		this.player2.hand.splice(this.player2.select,1);
 
-		const support1 = this.player1.used.length == 0 ? null : this.player1.used[this.player1.used.length-1];
-        const support2 = this.player2.used.length == 0 ? null : this.player2.used[this.player2.used.length-1];
+		const support1 = this.player1.used.length == 0 ? null : GameMaster.CC[this.player1.used[this.player1.used.length-1]-1];
+        const support2 = this.player2.used.length == 0 ? null : GameMaster.CC[this.player2.used[this.player2.used.length-1]-1];
 
 		const battleresult = GameMaster.Judge(battle1,battle2,support1,support2);
 		const p1damage = (battleresult < 0);
@@ -156,8 +171,8 @@ class GameMaster
 			this.phase = -1;
             return;
         }
-        this.player1.used.push(battle1);
-        this.player2.used.push(battle2);
+        this.player1.used.push(battle1.ID);
+        this.player2.used.push(battle2.ID);
 
 		this.player1.DrawCard();
 		this.player2.DrawCard();
@@ -172,10 +187,10 @@ class GameMaster
 
     static Judge(a_battle, b_battle, a_support = null, b_support = null)
     {
-        let a_supportpower = (a_support != null ? GameMaster.Chemistry(a_battle.e, a_support.e) : 0);
-        let a_power = a_battle.p + a_supportpower + GameMaster.Chemistry(a_battle.e, b_battle.e);
-        let b_supportpower = (b_support != null ? GameMaster.Chemistry(b_battle.e, b_support.e) : 0);
-        let b_power = b_battle.p + b_supportpower + GameMaster.Chemistry(b_battle.e, a_battle.e);
+        let a_supportpower = (a_support != null ? GameMaster.Chemistry(a_battle.Element, a_support.Element) : 0);
+        let a_power = a_battle.Power + a_supportpower + GameMaster.Chemistry(a_battle.Element, b_battle.Element);
+        let b_supportpower = (b_support != null ? GameMaster.Chemistry(b_battle.Element, b_support.Element) : 0);
+        let b_power = b_battle.Power + b_supportpower + GameMaster.Chemistry(b_battle.Element, a_battle.Element);
 
         return a_power - b_power;
     }
