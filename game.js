@@ -17,6 +17,7 @@ class CardCatalog
 		const json = fs.readFileSync("cardcatalog.json", "utf8");
 		const catalog = JSON.parse(json);
 		this.catalog = catalog.CardCatalog;
+		this.version = catalog.version;
 	}
 	Get(id)
 	{
@@ -54,10 +55,13 @@ class PlayerData
 		}
 
 		let deck = [];
-		for (let i = 0;i < 10;i++)
+		for (let i = 0;i < 5;i++)
 		{
 			deck.push(i + 1);
 			deck.push(i + 1);
+			deck.push(i + 1);
+			deck.push(i + 1 + 5);
+			deck.push(i + 1 + 10);
 		}
 		this.deck = shuffle(deck);
 		

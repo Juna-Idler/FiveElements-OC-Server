@@ -55,15 +55,34 @@ class GameRoom
 		this.DamageTimeoutCount = damageSec * 1000 + 5000;
 		this.BattleTimeoutCount = battleSec * 1000 + 5000;
 
-        const p1initial = { name: this.p1client.name, hand:this.game.player1.hand,deckcount:this.game.player1.deck.length};
-        const p2initial = { name: this.p2client.name, hand:this.game.player2.hand,deckcount:this.game.player2.deck.length};
+        this.ready1 = false;
+        this.ready2 = false;
+
+        const p1initial = { name: this.p1client.name};
+        const p2initial = { name: this.p2client.name};
 
         this.p1client.ws.send(JSON.stringify({y:p1initial,r:p2initial,battletime:battleSec,damagetime:damageSec}));
         this.p2client.ws.send(JSON.stringify({y:p2initial,r:p1initial,battletime:battleSec,damagetime:damageSec}));
-        this.SetBattleTimeOut();
+    }
+    Ready(ws)
+    {
+        if (this.p1client.ws == ws)
+        {
+            this.ready1 = true;
+        }
+        if (this.p2client.ws == ws)
+        {
+            this.ready2 = true;
+        }
+        if (this.ready1 && this.ready2)
+        {
+            this.p1client.ws.send(this.game.p1result);
+            this.p2client.ws.send(this.game.p2result);
+            this.SetBattleTimeOut();
 
-        console.log("GameStart:");
-        console.log(this.game.p1result);
+            console.log("GameStart:");
+            console.log(this.game.p1result);            
+        }
     }
     Select(ws,data)
     {
@@ -209,8 +228,13 @@ var Rooms = new Map();
 var JoinCommand = {
     command:"Join",
     wait_room_name:"???",
-    playername:""
+    playername:"",
+    version:0
 }
+var readyCommand = {
+    command:"Ready",
+}
+
 var SelectCommand = {
     command:"Select",
     phase:"phase_count",
@@ -231,6 +255,11 @@ wss.on('connection', (ws,req) => {
         switch (data.command)
         {
         case "Join":
+            if (data.version != GameMaster.CardCatalog.version)
+            {
+                ws.send(JSON.stringify({abort:"Version mismatch"}));
+                break;
+            }
             if (wait_client && wait_client.ws.readyState == WebSocket.OPEN)
             {
                 console.log("Join:Matching");
@@ -242,6 +271,12 @@ wss.on('connection', (ws,req) => {
             else{
                 wait_client = new ClientData(ws,data.playername);
                 console.log("Join:Wait");
+            }
+            break;
+        case "Ready":
+            {
+                const game = Rooms.get(ws);
+                game?.Ready(ws);
             }
             break;
         case "Select":
